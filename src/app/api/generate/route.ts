@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { GenerateRequest, GenerateResponse, APIError } from '@/types';
-import { uploadToIPFS } from '@/lib/ipfs';
+import { uploadImageToMinio, generateFileName } from '@/lib/minio';
 
 // Input validation function
 function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
@@ -115,27 +115,58 @@ export async function POST(request: NextRequest) {
 
     console.log('Image generated successfully with Doubao:', imageUrl);
 
-    // Upload to IPFS
-    console.log('Uploading to IPFS...');
-    let ipfsResult;
-    try {
-      ipfsResult = await uploadToIPFS(imageUrl, body.prompt);
-      console.log('IPFS upload successful:', ipfsResult);
-    } catch (ipfsError) {
-      console.error('IPFS upload failed:', ipfsError);
-      return createErrorResponse(
-        'Failed to upload to IPFS',
-        'IPFS_UPLOAD_FAILED',
-        500,
-        ipfsError instanceof Error ? ipfsError.message : 'Unknown IPFS error'
-      );
-    }
+    // Download the image
+    console.log('Downloading image from Doubao...');
+    const imageResponse = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000,
+    });
+
+    const imageBuffer = Buffer.from(imageResponse.data);
+    console.log(`✅ Image downloaded, size: ${imageBuffer.length} bytes`);
+
+    // Upload image to MinIO
+    console.log('Uploading image to MinIO...');
+    const imageFileName = generateFileName('generated', 'png');
+    const minioImageUrl = await uploadImageToMinio(imageBuffer, imageFileName, 'image/png');
+    console.log('Image uploaded to MinIO:', minioImageUrl);
+
+    // Create NFT metadata
+    const metadata = {
+      name: `AI Generated Art: ${body.prompt.substring(0, 50)}${body.prompt.length > 50 ? '...' : ''}`,
+      description: `AI-generated artwork created from the prompt: "${body.prompt}"`,
+      image: minioImageUrl,
+      attributes: [
+        {
+          trait_type: "Generation Method",
+          value: "Doubao Seedream"
+        },
+        {
+          trait_type: "Created At",
+          value: new Date().toISOString().split('T')[0]
+        },
+        {
+          trait_type: "Prompt Length",
+          value: body.prompt.length.toString()
+        }
+      ],
+      prompt: body.prompt,
+      created_at: new Date().toISOString(),
+      generated_by: "PromptMint"
+    };
+
+    // Upload metadata to MinIO
+    console.log('Uploading metadata to MinIO...');
+    const metadataBuffer = Buffer.from(JSON.stringify(metadata, null, 2));
+    const metadataFileName = generateFileName('metadata', 'json');
+    const minioMetadataUrl = await uploadImageToMinio(metadataBuffer, metadataFileName, 'application/json');
+    console.log('Metadata uploaded to MinIO:', minioMetadataUrl);
 
     // Return success response with image URL and tokenURI
     const result: GenerateResponse = {
       success: true,
-      previewURL: ipfsResult.previewURL,
-      tokenURI: ipfsResult.tokenURI
+      previewURL: minioImageUrl,
+      tokenURI: minioMetadataUrl
     };
 
     return NextResponse.json(result);

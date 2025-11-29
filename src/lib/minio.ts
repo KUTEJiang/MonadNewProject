@@ -39,25 +39,25 @@ export async function ensureBucketExists() {
 }
 
 export async function uploadImageToMinio(
-  imageBuffer: Buffer,
+  buffer: Buffer,
   fileName: string,
   contentType: string = 'image/png'
 ): Promise<string> {
   try {
     await ensureBucketExists();
-
+    
     const metadata = {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=31536000',
     };
-
-    await minioClient.putObject(bucketName, fileName, imageBuffer, imageBuffer.length, metadata);
+    
+    await minioClient.putObject(bucketName, fileName, buffer, buffer.length, metadata);
 
     const minioUrl = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:9100';
-    const imageUrl = `${minioUrl}/${bucketName}/${fileName}`;
-
-    console.log(`✅ Image uploaded to MinIO: ${imageUrl}`);
-    return imageUrl;
+    const fileUrl = `${minioUrl}/${bucketName}/${fileName}`;
+    
+    console.log(`✅ File uploaded to MinIO: ${fileUrl}`);
+    return fileUrl;
   } catch (err) {
     console.error('❌ Error uploading to MinIO:', err);
     throw err;
