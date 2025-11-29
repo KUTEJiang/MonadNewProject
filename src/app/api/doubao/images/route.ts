@@ -4,11 +4,11 @@ import { getRecentDoubaoImages } from '@/lib/db';
 export async function GET() {
   try {
     const images = getRecentDoubaoImages(50);
-
+    
     return NextResponse.json({
       success: true,
       images: images.map(img => ({
-        url: img.minio_url,
+        url: img.image_url, // Use original image_url instead of minio_url
         prompt: img.prompt,
         timestamp: img.created_at,
       })),

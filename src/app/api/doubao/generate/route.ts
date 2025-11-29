@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { uploadImageToMinio, generateFileName } from '@/lib/minio';
 import { saveDoubaoImage } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -51,32 +50,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Download the image
-    console.log(`📥 Downloading image from: ${imageUrl}`);
-    const imageResponse = await axios.get(imageUrl, {
-      responseType: 'arraybuffer',
-      timeout: 30000,
-    });
-
-    const imageBuffer = Buffer.from(imageResponse.data);
-    console.log(`✅ Image downloaded, size: ${imageBuffer.length} bytes`);
-
-    // Generate a unique filename
-    const fileName = generateFileName('doubao', 'png');
-
-    // Upload to MinIO
-    console.log(`📤 Uploading to MinIO: ${fileName}`);
-    const minioUrl = await uploadImageToMinio(imageBuffer, fileName, 'image/png');
-
     const duration = Date.now() - startTime;
     console.log(`✅ Doubao image generation complete in ${duration}ms`);
 
-    // Save to database
+    // Generate a unique filename for reference
     const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 9);
+    const fileName = `doubao-${timestamp}-${random}.png`;
+
+    // Save to database (using original URL as both image_url and minio_url)
     saveDoubaoImage({
       prompt,
       image_url: imageUrl,
-      minio_url: minioUrl,
+      minio_url: imageUrl, // Use original URL since we're not using MinIO
       file_name: fileName,
       size,
       seed,
@@ -85,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      imageUrl: minioUrl,
+      imageUrl: imageUrl,
       originalUrl: imageUrl,
       fileName: fileName,
       duration,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { GenerateRequest, GenerateResponse, APIError } from '@/types';
-import { uploadImageToMinio, generateFileName } from '@/lib/minio';
 
 // Input validation function
 function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
@@ -115,27 +114,11 @@ export async function POST(request: NextRequest) {
 
     console.log('Image generated successfully with Doubao:', imageUrl);
 
-    // Download the image
-    console.log('Downloading image from Doubao...');
-    const imageResponse = await axios.get(imageUrl, {
-      responseType: 'arraybuffer',
-      timeout: 30000,
-    });
-
-    const imageBuffer = Buffer.from(imageResponse.data);
-    console.log(`✅ Image downloaded, size: ${imageBuffer.length} bytes`);
-
-    // Upload image to MinIO
-    console.log('Uploading image to MinIO...');
-    const imageFileName = generateFileName('generated', 'png');
-    const minioImageUrl = await uploadImageToMinio(imageBuffer, imageFileName, 'image/png');
-    console.log('Image uploaded to MinIO:', minioImageUrl);
-
     // Create NFT metadata
     const metadata = {
       name: `AI Generated Art: ${body.prompt.substring(0, 50)}${body.prompt.length > 50 ? '...' : ''}`,
       description: `AI-generated artwork created from the prompt: "${body.prompt}"`,
-      image: minioImageUrl,
+      image: imageUrl,
       attributes: [
         {
           trait_type: "Generation Method",
@@ -155,18 +138,15 @@ export async function POST(request: NextRequest) {
       generated_by: "PromptMint"
     };
 
-    // Upload metadata to MinIO
-    console.log('Uploading metadata to MinIO...');
-    const metadataBuffer = Buffer.from(JSON.stringify(metadata, null, 2));
-    const metadataFileName = generateFileName('metadata', 'json');
-    const minioMetadataUrl = await uploadImageToMinio(metadataBuffer, metadataFileName, 'application/json');
-    console.log('Metadata uploaded to MinIO:', minioMetadataUrl);
+    // Create metadata URL (data URI for JSON)
+    const metadataJson = JSON.stringify(metadata, null, 2);
+    const metadataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(metadataJson)}`;
 
     // Return success response with image URL and tokenURI
     const result: GenerateResponse = {
       success: true,
-      previewURL: minioImageUrl,
-      tokenURI: minioMetadataUrl
+      previewURL: imageUrl,
+      tokenURI: metadataUrl
     };
 
     return NextResponse.json(result);

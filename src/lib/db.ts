@@ -42,7 +42,7 @@ export interface DoubaoImageRecord {
   id?: number;
   prompt: string;
   image_url: string;
-  minio_url: string;
+  minio_url: string; // Keep for backward compatibility, but will store same as image_url
   file_name: string;
   size?: string;
   seed?: number;
@@ -55,17 +55,17 @@ export function saveDoubaoImage(data: Omit<DoubaoImageRecord, 'id'>): number {
     INSERT INTO doubao_images (prompt, image_url, minio_url, file_name, size, seed, created_at)
     VALUES (@prompt, @image_url, @minio_url, @file_name, @size, @seed, @created_at)
   `);
-
+  
   const result = stmt.run({
     prompt: data.prompt,
     image_url: data.image_url,
-    minio_url: data.minio_url,
+    minio_url: data.minio_url || data.image_url, // Use image_url if minio_url not provided
     file_name: data.file_name,
     size: data.size || '1024x1024',
     seed: data.seed || 42,
     created_at: data.created_at,
   });
-
+  
   console.log(`✅ Doubao image saved to DB: ${data.file_name}`);
   return result.lastInsertRowid as number;
 }
