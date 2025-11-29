@@ -4,7 +4,7 @@ import { getRecentDoubaoImages } from '@/lib/db';
 export async function GET() {
   try {
     const images = getRecentDoubaoImages(50);
-    
+
     return NextResponse.json({
       success: true,
       images: images.map(img => ({

@@ -55,7 +55,7 @@ export function saveDoubaoImage(data: Omit<DoubaoImageRecord, 'id'>): number {
     INSERT INTO doubao_images (prompt, image_url, minio_url, file_name, size, seed, created_at)
     VALUES (@prompt, @image_url, @minio_url, @file_name, @size, @seed, @created_at)
   `);
-  
+
   const result = stmt.run({
     prompt: data.prompt,
     image_url: data.image_url,
@@ -65,7 +65,7 @@ export function saveDoubaoImage(data: Omit<DoubaoImageRecord, 'id'>): number {
     seed: data.seed || 42,
     created_at: data.created_at,
   });
-  
+
   console.log(`✅ Doubao image saved to DB: ${data.file_name}`);
   return result.lastInsertRowid as number;
 }
