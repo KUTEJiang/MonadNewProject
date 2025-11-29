@@ -14,7 +14,6 @@ import { ErrorDisplay, ErrorToast } from '@/components/ErrorDisplay'
 import { WalletConnection } from '@/components/WalletConnection'
 import { OperationHistory } from '@/components/OperationHistory'
 import { ImageModal } from '@/components/ui/ImageModal'
-import { DoubaoImageGenerator } from '@/components/DoubaoImageGenerator'
 
 export default function Home() {
   const { isConnected, isWrongNetwork, address, formatAddress } = useWallet()
@@ -475,9 +474,6 @@ export default function Home() {
 
         {/* Operation History Section */}
         <OperationHistory className="mb-8" />
-
-        {/* Doubao Image Generator Section */}
-        <DoubaoImageGenerator />
 
         {/* How it Works Section */}
         <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">

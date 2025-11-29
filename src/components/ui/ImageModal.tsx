@@ -57,7 +57,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
               e.currentTarget.style.display = 'none';
             }}
           />
-          
+
           {/* Download button */}
           <a
             href={imageSrc}
@@ -75,4 +75,4 @@ export const ImageModal: React.FC<ImageModalProps> = ({
       </div>
     </div>
   );
-}; 
+};

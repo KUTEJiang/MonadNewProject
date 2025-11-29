@@ -45,17 +45,17 @@ export async function uploadImageToMinio(
 ): Promise<string> {
   try {
     await ensureBucketExists();
-    
+
     const metadata = {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=31536000',
     };
-    
+
     await minioClient.putObject(bucketName, fileName, imageBuffer, imageBuffer.length, metadata);
 
     const minioUrl = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:9100';
     const imageUrl = `${minioUrl}/${bucketName}/${fileName}`;
-    
+
     console.log(`✅ Image uploaded to MinIO: ${imageUrl}`);
     return imageUrl;
   } catch (err) {
