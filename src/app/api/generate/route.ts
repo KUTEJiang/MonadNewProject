@@ -1,28 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import axios from 'axios';
 import { GenerateRequest, GenerateResponse, APIError } from '@/types';
-import { uploadToIPFS } from '@/lib/ipfs';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: process.env.OPENAI_BASE_URL,
-});
 
 // Input validation function
 function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
   if (!prompt || typeof prompt !== 'string') {
     return { isValid: false, error: 'Prompt is required and must be a string' };
   }
-  
+
   if (prompt.trim().length === 0) {
     return { isValid: false, error: 'Prompt cannot be empty' };
   }
-  
+
   if (prompt.length > 1000) {
     return { isValid: false, error: 'Prompt must be less than 1000 characters' };
   }
-  
+
   // Check for potentially harmful content
   const forbiddenWords = ['nsfw', 'explicit', 'violence', 'hate'];
   const lowerPrompt = prompt.toLowerCase();
@@ -31,7 +24,7 @@ function validatePrompt(prompt: string): { isValid: boolean; error?: string } {
       return { isValid: false, error: 'Prompt contains inappropriate content' };
     }
   }
-  
+
   return { isValid: true };
 }
 
@@ -50,9 +43,9 @@ function createErrorResponse(error: string, code: string, status: number, detail
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY is not configured');
+    // Check if Doubao API key is configured
+    if (!process.env.DOUBAO_API_KEY) {
+      console.error('DOUBAO_API_KEY is not configured');
       return createErrorResponse(
         'Image generation service is not configured',
         'MISSING_API_TOKEN',
@@ -83,72 +76,123 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Generating image for prompt:', body.prompt);
+    console.log('Generating image with Doubao for prompt:', body.prompt);
 
-    // Generate image using OpenAI DALL-E-3
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: body.prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-      response_format: "url",
-    });
+    // Generate image using Doubao API
+    const doubaoResponse = await axios.post(
+      process.env.DOUBAO_API_URL || 'https://ark.cn-beijing.volces.com/api/v3/images/generations',
+      {
+        guidance_scale: 2.5,
+        model: 'doubao-seedream-3-0-t2i-250415',
+        prompt: body.prompt,
+        response_format: 'url',
+        seed: 42,
+        size: '1024x1024',
+        watermark: true,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.DOUBAO_API_KEY}`,
+        },
+        timeout: 60000,
+      }
+    );
 
-    // Validate OpenAI response
-    if (!response.data || response.data.length === 0) {
-      console.error('Invalid response from OpenAI:', response);
+    // Validate Doubao response
+    const imageUrl = doubaoResponse.data.data?.[0]?.url;
+
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      console.error('Invalid response from Doubao:', doubaoResponse.data);
       return createErrorResponse(
         'Failed to generate image',
         'GENERATION_FAILED',
         500,
-        { openaiResponse: response }
+        { doubaoResponse: doubaoResponse.data }
       );
     }
 
-    const imageUrl = response.data[0].url;
-    
-    if (!imageUrl || typeof imageUrl !== 'string') {
-      console.error('Invalid image URL from OpenAI:', imageUrl);
-      return createErrorResponse(
-        'Invalid image URL received',
-        'INVALID_IMAGE_URL',
-        500,
-        { imageUrl }
-      );
-    }
+    console.log('Image generated successfully with Doubao:', imageUrl);
 
-    console.log('Image generated successfully:', imageUrl);
+    // Create NFT metadata
+    const metadata = {
+      name: `AI Generated Art: ${body.prompt.substring(0, 50)}${body.prompt.length > 50 ? '...' : ''}`,
+      description: `AI-generated artwork created from the prompt: "${body.prompt}"`,
+      image: imageUrl,
+      attributes: [
+        {
+          trait_type: "Generation Method",
+          value: "Doubao Seedream"
+        },
+        {
+          trait_type: "Created At",
+          value: new Date().toISOString().split('T')[0]
+        },
+        {
+          trait_type: "Prompt Length",
+          value: body.prompt.length.toString()
+        }
+      ],
+      prompt: body.prompt,
+      created_at: new Date().toISOString(),
+      generated_by: "PromptMint"
+    };
 
-    // Upload to IPFS
-    console.log('Uploading to IPFS...');
-    let ipfsResult;
-    try {
-      ipfsResult = await uploadToIPFS(imageUrl, body.prompt);
-      console.log('IPFS upload successful:', ipfsResult);
-    } catch (ipfsError) {
-      console.error('IPFS upload failed:', ipfsError);
-      return createErrorResponse(
-        'Failed to upload to IPFS',
-        'IPFS_UPLOAD_FAILED',
-        500,
-        ipfsError instanceof Error ? ipfsError.message : 'Unknown IPFS error'
-      );
-    }
+    // Create metadata URL (data URI for JSON)
+    const metadataJson = JSON.stringify(metadata, null, 2);
+    const metadataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(metadataJson)}`;
 
     // Return success response with image URL and tokenURI
     const result: GenerateResponse = {
       success: true,
-      previewURL: ipfsResult.previewURL,
-      tokenURI: ipfsResult.tokenURI
+      previewURL: imageUrl,
+      tokenURI: metadataUrl
     };
 
     return NextResponse.json(result);
 
   } catch (error) {
     console.error('Error in /api/generate:', error);
-    
-    // Handle specific OpenAI errors
+
+    // Handle specific Doubao/Axios errors
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return createErrorResponse(
+          'Authentication failed with Doubao service',
+          'AUTH_FAILED',
+          401,
+          error.response.data
+        );
+      }
+
+      if (error.response?.status === 429) {
+        return createErrorResponse(
+          'Rate limit exceeded. Please try again later',
+          'RATE_LIMITED',
+          429,
+          error.response.data
+        );
+      }
+
+      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+        return createErrorResponse(
+          'Image generation timed out. Please try again',
+          'TIMEOUT',
+          408,
+          error.message
+        );
+      }
+
+      if (error.response) {
+        return createErrorResponse(
+          'Doubao API error',
+          'API_ERROR',
+          error.response.status,
+          error.response.data
+        );
+      }
+    }
+
     if (error instanceof Error) {
       if (error.message.includes('authentication') || error.message.includes('401')) {
         return createErrorResponse(
@@ -158,30 +202,12 @@ export async function POST(request: NextRequest) {
           error.message
         );
       }
-      
-      if (error.message.includes('rate limit') || error.message.includes('429')) {
-        return createErrorResponse(
-          'Rate limit exceeded. Please try again later',
-          'RATE_LIMITED',
-          429,
-          error.message
-        );
-      }
-      
-      if (error.message.includes('timeout') || error.message.includes('408')) {
+
+      if (error.message.includes('timeout')) {
         return createErrorResponse(
           'Image generation timed out. Please try again',
           'TIMEOUT',
           408,
-          error.message
-        );
-      }
-
-      if (error.message.includes('content_policy_violation')) {
-        return createErrorResponse(
-          'Content policy violation. Please modify your prompt',
-          'CONTENT_POLICY_VIOLATION',
-          400,
           error.message
         );
       }

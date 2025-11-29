@@ -1,4 +1,4 @@
-import { http, createConfig } from 'wagmi'
+import { http, createConfig, type CreateConnectorFn } from 'wagmi'
 import { defineChain } from 'viem'
 import { injected, metaMask, walletConnect } from 'wagmi/connectors'
 import { getClientConfig } from './config'
@@ -30,15 +30,26 @@ export const monadTestnet = defineChain({
 })
 
 // Create Wagmi configuration
+// Only add WalletConnect if project ID is configured
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+const connectors: CreateConnectorFn[] = [
+  injected(),
+  metaMask(),
+]
+
+if (walletConnectProjectId && walletConnectProjectId !== 'demo-project-id') {
+  connectors.push(
+    walletConnect({
+      projectId: walletConnectProjectId,
+    })
+  )
+} else {
+  console.warn('WalletConnect project ID not configured. WalletConnect connector disabled.')
+}
+
 export const config = createConfig({
   chains: [monadTestnet],
-  connectors: [
-    injected(),
-    metaMask(),
-    walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id',
-    }),
-  ],
+  connectors,
   transports: {
     [monadTestnet.id]: http(),
   },

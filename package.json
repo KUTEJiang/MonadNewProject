@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 5555",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 5555",
     "lint": "next lint",
     "compile": "hardhat compile",
     "test": "jest",
@@ -19,7 +19,10 @@
   "dependencies": {
     "@openzeppelin/contracts": "^5.4.0",
     "@tanstack/react-query": "^5.84.1",
+    "@types/better-sqlite3": "^7.6.13",
     "@web3-storage/w3up-client": "^17.3.0",
+    "axios": "^1.13.2",
+    "better-sqlite3": "^12.5.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
