@@ -14,32 +14,33 @@ import { ErrorDisplay, ErrorToast } from '@/components/ErrorDisplay'
 import { WalletConnection } from '@/components/WalletConnection'
 import { OperationHistory } from '@/components/OperationHistory'
 import { ImageModal } from '@/components/ui/ImageModal'
+import { DoubaoImageGenerator } from '@/components/DoubaoImageGenerator'
 
 export default function Home() {
   const { isConnected, isWrongNetwork, address, formatAddress } = useWallet()
-  const { 
-    state, 
-    setPrompt, 
-    canGenerate, 
-    canMint, 
-    isGenerating, 
+  const {
+    state,
+    setPrompt,
+    canGenerate,
+    canMint,
+    isGenerating,
     isMinting,
-    clearError 
+    clearError
   } = useAppContext()
-  const { 
-    generateImage, 
-    mintNFT, 
-    retryGeneration, 
-    retryMinting, 
+  const {
+    generateImage,
+    mintNFT,
+    retryGeneration,
+    retryMinting,
     validatePrompt,
-    getExplorerLink 
+    getExplorerLink
   } = useAppOperations()
 
   // Toast notification state
   const [showSuccessToast, setShowSuccessToast] = React.useState(false)
   const [showErrorToast, setShowErrorToast] = React.useState(false)
   const [successMessage, setSuccessMessage] = React.useState({ title: '', message: '' })
-  
+
   // Image modal state
   const [isImageModalOpen, setIsImageModalOpen] = React.useState(false)
 
@@ -173,7 +174,7 @@ export default function Home() {
                 <div className="ml-3">
                   <p className="text-blue-800 font-medium">Connect your wallet to get started</p>
                   <p className="text-blue-600 text-sm mt-1">
-                    You&apos;ll need a wallet connected to Monad Testnet to mint NFTs. 
+                    You&apos;ll need a wallet connected to Monad Testnet to mint NFTs.
                     You can still generate images without connecting.
                   </p>
                 </div>
@@ -253,14 +254,14 @@ export default function Home() {
                     {getProgressText()}
                     <PulsingDots className="text-blue-600" />
                   </p>
-                  
+
                   {/* Enhanced Progress Bar */}
-                  <ProgressBar 
-                    progress={state.generationState.progress} 
+                  <ProgressBar
+                    progress={state.generationState.progress}
                     className="max-w-xs mx-auto mb-2"
                     showPercentage={true}
                   />
-                  
+
                   {state.generationState.status === 'generating' && (
                     <p className="text-xs text-gray-400 mt-2">This may take 10-30 seconds...</p>
                   )}
@@ -330,9 +331,9 @@ export default function Home() {
                     )}
                     {state.mintingState.status === 'mining' && state.mintingState.txHash && (
                       <p className="text-blue-600 text-xs mt-1">
-                        <a 
-                          href={getExplorerLink(state.mintingState.txHash)} 
-                          target="_blank" 
+                        <a
+                          href={getExplorerLink(state.mintingState.txHash)}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="underline hover:text-blue-800"
                         >
@@ -359,7 +360,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          
+
           {/* Input Section */}
           <div className="space-y-6">
             <div>
@@ -385,7 +386,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <Button
@@ -395,14 +396,14 @@ export default function Home() {
                 size="lg"
                 className="flex-1 sm:flex-none sm:min-w-[160px]"
               >
-                {isGenerating 
+                {isGenerating
                   ? (state.generationState.status === 'generating' ? 'Generating...' : 'Uploading...')
-                  : state.generatedImage 
-                  ? 'Generate New Image' 
+                  : state.generatedImage
+                  ? 'Generate New Image'
                   : 'Generate Image'
                 }
               </Button>
-              
+
               <Button
                 onClick={handleMint}
                 disabled={!finalCanMint}
@@ -411,7 +412,7 @@ export default function Home() {
                 size="lg"
                 className="flex-1 sm:flex-none sm:min-w-[160px]"
                 title={
-                  !isConnected 
+                  !isConnected
                     ? 'Connect wallet to Monad Testnet to mint NFTs'
                     : isWrongNetwork
                     ? 'Switch to Monad Testnet to mint NFTs'
@@ -427,7 +428,7 @@ export default function Home() {
             {/* Helper Text */}
             <div className="text-center">
               <p className="text-sm text-gray-500">
-                {!isConnected 
+                {!isConnected
                   ? 'Connect your wallet to mint NFTs after generating an image'
                   : isWrongNetwork
                   ? 'Switch to Monad Testnet to enable minting'
@@ -446,8 +447,8 @@ export default function Home() {
                 <ErrorDisplay
                   error={state.error}
                   onRetry={
-                    state.generationState.status === 'error' 
-                      ? handleRetryGeneration 
+                    state.generationState.status === 'error'
+                      ? handleRetryGeneration
                       : state.mintingState.status === 'error'
                       ? handleRetryMinting
                       : undefined
@@ -475,6 +476,9 @@ export default function Home() {
         {/* Operation History Section */}
         <OperationHistory className="mb-8" />
 
+        {/* Doubao Image Generator Section */}
+        <DoubaoImageGenerator />
+
         {/* How it Works Section */}
         <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center">
@@ -490,7 +494,7 @@ export default function Home() {
                 Describe the image you want to create with AI. Be creative and detailed for the best results.
               </p>
             </div>
-            
+
             <div className="text-center group">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform duration-200 shadow-lg">
                 <span className="text-xl font-bold">2</span>
@@ -500,7 +504,7 @@ export default function Home() {
                 AI creates your unique image and automatically stores it on IPFS for permanent decentralized storage.
               </p>
             </div>
-            
+
             <div className="text-center group sm:col-span-2 lg:col-span-1">
               <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform duration-200 shadow-lg">
                 <span className="text-xl font-bold">3</span>
@@ -523,16 +527,16 @@ export default function Home() {
       />
 
       <ErrorToast
-        error={state.error || { 
-          type: ErrorType.UNKNOWN_ERROR, 
-          message: 'Unknown error', 
-          retryable: false, 
-          timestamp: Date.now() 
+        error={state.error || {
+          type: ErrorType.UNKNOWN_ERROR,
+          message: 'Unknown error',
+          retryable: false,
+          timestamp: Date.now()
         }}
         isVisible={showErrorToast && !!state.error}
         onRetry={
-          state.generationState.status === 'error' 
-            ? handleRetryGeneration 
+          state.generationState.status === 'error'
+            ? handleRetryGeneration
             : state.mintingState.status === 'error'
             ? handleRetryMinting
             : undefined
