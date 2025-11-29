@@ -1,0 +1,12 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 六边形外框 -->
+  <path d="M20 2L36 12V28L20 38L4 28V12L20 2Z" stroke="black" stroke-width="2" fill="none"/>
+  
+  <!-- 左箭头 -->
+  <path d="M16 15L12 20L16 25L14 20L16 15Z" fill="black"/>
+  <path d="M18 18L14 20L18 22L16 20L18 18Z" fill="black"/>
+  
+  <!-- 右箭头 -->
+  <path d="M24 15L28 20L24 25L26 20L24 15Z" fill="black"/>
+  <path d="M22 18L26 20L22 22L24 20L22 18Z" fill="black"/>
+</svg> 
